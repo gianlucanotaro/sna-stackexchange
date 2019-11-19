@@ -133,14 +133,16 @@ class StackFetcher:
 #
 # ----------------------------------------------------------------------
 #
-sf = StackFetcher('stackoverflow')
+if __name__ == '__main__':
 
-sf.json_load_questions()
-sf.fetch(iterations=1, time_delta=7200)
-sf.json_dump_questions()
+	sf = StackFetcher('stackoverflow')
 
-uq = sf.get_uniqueQuestions()
-graph = uq.graph_from_tags()
-csv_output = graph.to_csvOutput()
+	sf.json_load_questions()
+	sf.fetch(iterations=1, time_delta=7200)
+	sf.json_dump_questions()
 
-csv_output.export_to_csv()
+	uq = sf.get_uniqueQuestions()
+	graph = uq.graph_from_tags()
+	csv_output = graph.to_csvOutput()
+
+	csv_output.export_to_csv()
