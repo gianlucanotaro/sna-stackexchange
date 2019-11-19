@@ -1,5 +1,7 @@
 from stackapi import StackAPI
 import time
+import datetime
+from datetime import time as t
 import json
 
 #
@@ -86,12 +88,20 @@ class UniqueQuestions:
 						graph.add_edge(tag_a, tag_b)
 		return graph
 
-	def graph_from_xyz(self) -> Graph:
-		"""
-		example
-		"""
+	def graph_from_timezones(self) -> Graph:
 		graph = Graph()
-		return graph()
+		# TIMEZONES: USSA: 0-=<8, EUAF:>8-<=16, ASAU:>16-<=23:59
+		for _, question in self._data.items():
+			tags = question['tags']
+			questionTime = datetime.datetime.fromtimestamp(question['creation_date'])
+			for tag in tags:
+				if questionTime.time() <= t(hour = 8, minute = 0, second = 0):
+					graph.add_edge('USSA', tag)
+				elif questionTime.time() > t(hour = 8, minute = 0, second = 0) and questionTime.time() <= t(hour = 16, minute = 0, second = 0): 
+					graph.add_edge('EUAF', tag)
+				else:
+					graph.add_edge('ASAU', tag)
+		return graph
 	# ------------------------------------------------------------------
 	# implement graph conversion here
 	# ------------------------------------------------------------------
@@ -140,7 +150,12 @@ sf.fetch(iterations=1, time_delta=7200)
 sf.json_dump_questions()
 
 uq = sf.get_uniqueQuestions()
-graph = uq.graph_from_tags()
-csv_output = graph.to_csvOutput()
+#graph = uq.graph_from_tags()
+#csv_output = graph.to_csvOutput()
 
-csv_output.export_to_csv()
+#csv_output.export_to_csv()
+
+#graph = uq.graph_from_xyz()
+#csv_output = graph.to_csvOutput()
+
+#csv_output.export_to_csv()
