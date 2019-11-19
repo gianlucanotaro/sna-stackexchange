@@ -110,26 +110,26 @@ class UniqueQuestions:
 
 class StackFetcher:
 
-	def __init__(self, stack_name: str):
-		self._site = StackAPI(stack_name)
+
+	def __init__(self):
 		self._questions = UniqueQuestions()
 
-	def fetch(self, iterations: int = 1, time_delta: int = 3600) -> int:
+	def fetch(self, stack_api: StackAPI, iterations: int = 1, time_delta: int = 3600) -> int:
 		ts = int(time.time())
 		for i in range(iterations):
-			response = self._site.fetch('questions', fromdate=ts-(i+1)*time_delta, todate=ts-i*time_delta)
+			response = stack_api.fetch('questions', fromdate=ts-(i+1)*time_delta, todate=ts-i*time_delta)
 			self._questions.extend(response['items'])
-			print('number of fetched questions: ', len(self._questions))
+			print('number of total questions: ', len(self._questions))
 			print(i+1, '/', iterations)
 			time.sleep(1)
 		print('quota_remaining:', response['quota_remaining'])
 
-	def json_dump_questions(self, file_name: str = 'questions.json') -> None:
+	def json_dump_questions(self, file_name: str) -> None:
 		print('number of dumped questions:', len(self._questions))
 		with open(file_name, 'w') as f:
 			f.write(json.dumps(list(self._questions._data.values())))
 
-	def json_load_questions(self, file_name: str = 'questions.json') -> None:
+	def json_load_questions(self, file_name: str) -> None:
 		with open(file_name, 'r') as f:
 			# json does not support integers as dictionary keys
 			loaded_questions = json.loads(f.read())
@@ -139,23 +139,21 @@ class StackFetcher:
 	def get_uniqueQuestions(self) -> UniqueQuestions:
 		return self._questions
 
-		
 #
 # ----------------------------------------------------------------------
 #
-sf = StackFetcher('stackoverflow')
+if __name__ == '__main__':
 
-sf.json_load_questions()
-sf.fetch(iterations=1, time_delta=7200)
-sf.json_dump_questions()
+	stack_api = StackAPI('stackoverflow')
 
-uq = sf.get_uniqueQuestions()
-#graph = uq.graph_from_tags()
-#csv_output = graph.to_csvOutput()
+	sf = StackFetcher()
 
-#csv_output.export_to_csv()
+	sf.json_load_questions()
+	sf.fetch(stack_api, iterations=1, time_delta=7200)
+	sf.json_dump_questions()
 
-#graph = uq.graph_from_xyz()
-#csv_output = graph.to_csvOutput()
+	uq = sf.get_uniqueQuestions()
+	graph = uq.graph_from_tags()
+	csv_output = graph.to_csvOutput()
 
-#csv_output.export_to_csv()
+	csv_output.export_to_csv()
