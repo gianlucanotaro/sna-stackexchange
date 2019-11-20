@@ -132,11 +132,11 @@ class UniqueQuestions:
 						graph.add_edge('ASAU', tag)
 		return graph
 
-
-	def graph_from_stacks(self, stacklist:[str]) -> Graph:
+	def graph_from_stacks(self) -> Graph:
 		graph = Graph()
-		for stack in stacklist:
-			pass
+		for _, stacks in self._data.items():
+			for stack, question in stacks.items():
+				graph.add_edge(str(stack), question['owner']['display_name'])
 		return graph
 	# ------------------------------------------------------------------
 	# implement graph conversion here
@@ -188,12 +188,15 @@ def main():
 
 	graph_tags = uq.graph_from_tags()
 	graph_timezones = uq.graph_from_timezones()
+	graph_stacks = uq.graph_from_stacks()
 
 	csv_tag_output = graph_tags.to_csvOutput()
 	csv_timezone_output = graph_timezones.to_csvOutput()
+	csv_stack_output = graph_stacks.to_csvOutput()
 	
 	csv_tag_output.export_to_csv('edge_tag.csv', 'node_tag.csv')
 	csv_timezone_output.export_to_csv('edge_timezone.csv', 'node_timezone.csv')
+	csv_stack_output.export_to_csv('edge_stack.csv', 'node_stack.csv')
 	
 if __name__ == '__main__':
 	main()
