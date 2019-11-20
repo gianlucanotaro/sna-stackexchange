@@ -131,6 +131,13 @@ class UniqueQuestions:
 					else:
 						graph.add_edge('ASAU', tag)
 		return graph
+
+
+	def graph_from_stacks(self, stacklist:[str]) -> Graph:
+		graph = Graph()
+		for stack in stacklist:
+			pass
+		return graph
 	# ------------------------------------------------------------------
 	# implement graph conversion here
 	# ------------------------------------------------------------------
@@ -141,15 +148,16 @@ class StackFetcher:
 	def __init__(self):
 		self._questions = UniqueQuestions()
 
-	def fetch(self, stack_api: StackAPI, iterations: int = 1, time_delta: int = 3600) -> int:
+	def fetch(self, stack_apis: [StackAPI], iterations: int = 1, time_delta: int = 3600) -> int:
 		ts = int(time.time())
-		for i in range(iterations):
-			response = stack_api.fetch('questions', fromdate=ts-(i+1)*time_delta, todate=ts-i*time_delta)
-			self._questions.extend(stack_api._name, response['items'])
-			print('number of total questions: ', len(self._questions))
-			print(i+1, '/', iterations)
-			time.sleep(1)
-		print('quota_remaining:', response['quota_remaining'])
+		for stack_api in stack_apis:
+			for i in range(iterations):
+				response = stack_api.fetch('questions', fromdate=ts-(i+1)*time_delta, todate=ts-i*time_delta)
+				self._questions.extend(stack_api._name, response['items'])
+				print('number of total questions: ', len(self._questions))
+				print(i+1, '/', iterations)
+				time.sleep(1)
+			print('quota_remaining:', response['quota_remaining'])
 
 	def json_dump_questions(self, file_name: str) -> None:
 		print('number of dumped questions:', len(self._questions))
@@ -168,7 +176,7 @@ class StackFetcher:
 # ----------------------------------------------------------------------
 #
 def main():
-	stack_api = StackAPI('stackoverflow')
+	stack_api = [StackAPI('stackoverflow'),StackAPI('math')]
 
 	sf = StackFetcher()
 
