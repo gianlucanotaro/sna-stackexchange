@@ -134,8 +134,8 @@ class UniqueQuestions:
 
 	def graph_from_stacks(self) -> Graph:
 		graph = Graph()
-		for _, stacks in self._data.items():
-			for stack, question in stacks.items():
+		for stack, questions in self._data.items():
+			for _, question in questions.items():
 				graph.add_edge(str(stack), question['owner']['display_name'])
 		return graph
 	# ------------------------------------------------------------------
