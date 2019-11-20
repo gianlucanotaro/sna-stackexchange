@@ -13,6 +13,24 @@ import json
 # import importlib
 # importlib.reload(sna)
 
+#
+# satisfy typechecker because of circular references
+#
+class UniqueQuestions:
+	pass
+
+class StackFetcher:
+	pass
+
+class CsvOutput():
+	pass
+
+
+#
+#
+#
+	
+
 class CsvOutput():
 
 	def __init__(self):
@@ -35,11 +53,13 @@ class CsvOutput():
 	def _csv_formatted_nodes(self) -> str:
 		return 'Id,Label,timeset\n'+'\n'.join([str(id)+','+label+',' for label, id in self.nodes.items()])
 
-	def export_to_csv(self, edge_file_name: str = 'edge_export.csv', node_file_name: str = 'node_export.csv') -> None:
+	def export_to_csv(self, edge_file_name: str, node_file_name: str) -> None:
 		with open(edge_file_name, 'w') as f:
 			f.write(self._csv_formatted_edges())
+		print('created:', edge_file_name)
 		with open(node_file_name, 'w') as f:
 			f.write(self._csv_formatted_nodes())
+		print('created:', node_file_name)
 
 class Graph:
 
@@ -66,50 +86,57 @@ class UniqueQuestions:
 		self._data = {}
 
 	def __len__(self) -> int:
-		return len(self._data)
+		return sum([len(d.keys()) for _, d in self._data.items()])
 
-	def extend(self, questions: list) -> None:
-		prev = len(self._data)
+	def as_json(self) -> str:
+		return json.dumps({stack_name: {str(id): values for id, values in questions.items()} for stack_name, questions in self._data.items()})
+
+	@classmethod
+	def from_json(cls, json_string: str) -> UniqueQuestions:
+		uq = UniqueQuestions()
+		loaded_q = json.loads(json_string)
+		uq._data = {stack_name: {int(id): question for id, question in questions.items()} for stack_name, questions in loaded_q.items()}
+		return uq
+
+	def extend(self, stack_name: str, questions: list) -> None:
+		if stack_name not in self._data.keys(): self._data[stack_name] = {}
 		for question in questions:
-			self._data[question['question_id']] = question
-		post = len(self._data)
-		print('new questions:', (post-prev))
+			self._data[stack_name][question['question_id']] = question
 
 	# ------------------------------------------------------------------
 	# implement graph conversion here
 	# ------------------------------------------------------------------
 	def graph_from_tags(self) -> Graph:
 		graph = Graph()
-		
-		for _, question in self._data.items():
-			for tag_a in question['tags']:
-				for tag_b in question['tags']:
-					if tag_a < tag_b:
-						graph.add_edge(tag_a, tag_b)
+		for _, stacks in self._data.items():
+			for _, question in stacks.items():
+				for tag_a in question['tags']:
+					for tag_b in question['tags']:
+						if tag_a < tag_b:
+							graph.add_edge(tag_a, tag_b)
 		return graph
 
 	def graph_from_timezones(self) -> Graph:
 		graph = Graph()
 		# TIMEZONES: USSA: 0-=<8, EUAF:>8-<=16, ASAU:>16-<=23:59
-		for _, question in self._data.items():
-			tags = question['tags']
-			questionTime = datetime.datetime.fromtimestamp(question['creation_date'])
-			for tag in tags:
-				if questionTime.time() <= t(hour = 8, minute = 0, second = 0):
-					graph.add_edge('USSA', tag)
-				elif questionTime.time() > t(hour = 8, minute = 0, second = 0) and questionTime.time() <= t(hour = 16, minute = 0, second = 0): 
-					graph.add_edge('EUAF', tag)
-				else:
-					graph.add_edge('ASAU', tag)
+		for _, stacks in self._data.items():
+			for _, question in stacks.items():
+				tags = question['tags']
+				questionTime = datetime.datetime.fromtimestamp(question['creation_date'])
+				for tag in tags:
+					if questionTime.time() <= t(hour = 8, minute = 0, second = 0):
+						graph.add_edge('USSA', tag)
+					elif questionTime.time() > t(hour = 8, minute = 0, second = 0) and questionTime.time() <= t(hour = 16, minute = 0, second = 0):
+						graph.add_edge('EUAF', tag)
+					else:
+						graph.add_edge('ASAU', tag)
 		return graph
 	# ------------------------------------------------------------------
 	# implement graph conversion here
 	# ------------------------------------------------------------------
 
 
-
 class StackFetcher:
-
 
 	def __init__(self):
 		self._questions = UniqueQuestions()
@@ -118,7 +145,7 @@ class StackFetcher:
 		ts = int(time.time())
 		for i in range(iterations):
 			response = stack_api.fetch('questions', fromdate=ts-(i+1)*time_delta, todate=ts-i*time_delta)
-			self._questions.extend(response['items'])
+			self._questions.extend(stack_api._name, response['items'])
 			print('number of total questions: ', len(self._questions))
 			print(i+1, '/', iterations)
 			time.sleep(1)
@@ -127,33 +154,38 @@ class StackFetcher:
 	def json_dump_questions(self, file_name: str) -> None:
 		print('number of dumped questions:', len(self._questions))
 		with open(file_name, 'w') as f:
-			f.write(json.dumps(list(self._questions._data.values())))
+			f.write(self._questions.as_json())
 
 	def json_load_questions(self, file_name: str) -> None:
 		with open(file_name, 'r') as f:
-			# json does not support integers as dictionary keys
-			loaded_questions = json.loads(f.read())
-			self._questions.extend(loaded_questions)
-			print('number of loaded questions:', len(loaded_questions))
-
+			self._questions = UniqueQuestions.from_json(f.read())
+			print('number of loaded questions:', len(self._questions))
+			
 	def get_uniqueQuestions(self) -> UniqueQuestions:
 		return self._questions
 
 #
 # ----------------------------------------------------------------------
 #
-if __name__ == '__main__':
-
+def main():
 	stack_api = StackAPI('stackoverflow')
 
 	sf = StackFetcher()
 
-	sf.json_load_questions()
-	sf.fetch(stack_api, iterations=1, time_delta=7200)
-	sf.json_dump_questions()
+	sf.json_load_questions('qs.json')
+	sf.fetch(stack_api, iterations=1, time_delta=200)
+	sf.json_dump_questions('qs.json')
 
 	uq = sf.get_uniqueQuestions()
-	graph = uq.graph_from_tags()
-	csv_output = graph.to_csvOutput()
 
-	csv_output.export_to_csv()
+	graph_tags = uq.graph_from_tags()
+	graph_timezones = uq.graph_from_timezones()
+
+	csv_tag_output = graph_tags.to_csvOutput()
+	csv_timezone_output = graph_timezones.to_csvOutput()
+	
+	csv_tag_output.export_to_csv('edge_tag.csv', 'node_tag.csv')
+	csv_timezone_output.export_to_csv('edge_timezone.csv', 'node_timezone.csv')
+	
+if __name__ == '__main__':
+	main()
