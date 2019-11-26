@@ -1,6 +1,8 @@
 from stackapi import StackAPI
 import time
 import datetime
+import numpy as np
+import matplotlib.pyplot as plt
 from datetime import time as t
 import json
 
@@ -138,6 +140,22 @@ class UniqueQuestions:
 			for _, question in questions.items():
 				graph.add_edge(str(stack), question['owner']['display_name'])
 		return graph
+
+	def graph_from_rating(self) -> Graph:
+		graph = Graph()
+		ratings = []
+		for stack, questions in self._data.items():
+			for _, question in questions.items():
+				ratings.append(question['score'])
+		print(ratings)
+		a = np.mean(ratings)
+		b = np.std(ratings)
+		print(a)
+		print(b)
+		plt.hist(ratings)
+		plt.show()
+		return graph
+
 	# ------------------------------------------------------------------
 	# implement graph conversion here
 	# ------------------------------------------------------------------
@@ -148,11 +166,11 @@ class StackFetcher:
 	def __init__(self):
 		self._questions = UniqueQuestions()
 
-	def fetch(self, stack_apis: [StackAPI], iterations: int = 1, time_delta: int = 3600) -> int:
+	def fetch(self, stack_apis: [StackAPI], iterations: int = 1, time_intvl: int = 3600, time_diff: int = 0) -> int:
 		ts = int(time.time())
 		for stack_api in stack_apis:
 			for i in range(iterations):
-				response = stack_api.fetch('questions', fromdate=ts-(i+1)*time_delta, todate=ts-i*time_delta)
+				response = stack_api.fetch('questions', fromdate=ts-(i+1)*time_intvl-time_diff, todate=ts-i*time_intvl-time_diff)
 				self._questions.extend(stack_api._name, response['items'])
 				print('number of total questions: ', len(self._questions))
 				print(i+1, '/', iterations)
@@ -171,7 +189,6 @@ class StackFetcher:
 			
 	def get_uniqueQuestions(self) -> UniqueQuestions:
 		return self._questions
-
 #
 # ----------------------------------------------------------------------
 #
@@ -180,8 +197,8 @@ def main():
 
 	sf = StackFetcher()
 
-	sf.json_load_questions('qs.json')
-	sf.fetch(stack_api, iterations=1, time_delta=200)
+	#sf.json_load_questions('qs.json')
+	sf.fetch(stack_api, iterations=1, time_intvl=3600, time_diff=3600*24*7)
 	sf.json_dump_questions('qs.json')
 
 	uq = sf.get_uniqueQuestions()
@@ -189,14 +206,17 @@ def main():
 	graph_tags = uq.graph_from_tags()
 	graph_timezones = uq.graph_from_timezones()
 	graph_stacks = uq.graph_from_stacks()
+	graph_rating = uq.graph_from_rating()
 
 	csv_tag_output = graph_tags.to_csvOutput()
 	csv_timezone_output = graph_timezones.to_csvOutput()
 	csv_stack_output = graph_stacks.to_csvOutput()
+	csv_rating_output = graph_rating.to_csvOutput()
 	
 	csv_tag_output.export_to_csv('edge_tag.csv', 'node_tag.csv')
 	csv_timezone_output.export_to_csv('edge_timezone.csv', 'node_timezone.csv')
 	csv_stack_output.export_to_csv('edge_stack.csv', 'node_stack.csv')
+	#csv_rating_output.export_to_csv('edge_rating.csv', 'node_rating.csv')
 	
 if __name__ == '__main__':
 	main()
