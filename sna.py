@@ -147,13 +147,28 @@ class UniqueQuestions:
 		for stack, questions in self._data.items():
 			for _, question in questions.items():
 				ratings.append(question['score'])
-		print(ratings)
-		a = np.mean(ratings)
-		b = np.std(ratings)
-		print(a)
-		print(b)
-		plt.hist(ratings)
-		plt.show()
+		p0 = np.percentile(ratings,20)
+		p1 = np.percentile(ratings,40)
+		p2 = np.percentile(ratings,60)
+		p3 = np.percentile(ratings,80)
+		p4 = np.percentile(ratings,100)
+		for stack, questions in self._data.items():
+			for _, question in questions.items():
+				if question['score'] <= p0:
+					for tag in question['tags']:
+						graph.add_edge(tag,'very bad')
+				if question['score'] <= p1:
+					for tag in question['tags']:
+						graph.add_edge(tag,'bad')
+				if question['score'] <= p2:
+					for tag in question['tags']:
+						graph.add_edge(tag,'ok')
+				if question['score'] <= p3:
+					for tag in question['tags']:
+						graph.add_edge(tag,'good')
+				if question['score'] <= p4:
+					for tag in question['tags']:
+						graph.add_edge(tag,'very good')
 		return graph
 
 	# ------------------------------------------------------------------
@@ -216,7 +231,7 @@ def main():
 	csv_tag_output.export_to_csv('edge_tag.csv', 'node_tag.csv')
 	csv_timezone_output.export_to_csv('edge_timezone.csv', 'node_timezone.csv')
 	csv_stack_output.export_to_csv('edge_stack.csv', 'node_stack.csv')
-	#csv_rating_output.export_to_csv('edge_rating.csv', 'node_rating.csv')
+	csv_rating_output.export_to_csv('edge_rating.csv', 'node_rating.csv')
 	
 if __name__ == '__main__':
 	main()
