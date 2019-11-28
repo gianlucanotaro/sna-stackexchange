@@ -82,6 +82,15 @@ class Graph:
 				csvOutput.add_data_row(source_label=source, target_label=target, weight=weight)
 		return csvOutput
 
+	def filter(self, occurences : int) -> None:
+		graph = Graph()
+		for node,subnode in self.graph.items():
+			for tag,value in subnode.items():
+				if value > occurences:
+					for v in range(value):
+						graph.add_edge(node,tag)
+		self.graph = graph
+
 class UniqueQuestions:
 
 	def __init__(self):
@@ -169,6 +178,7 @@ class UniqueQuestions:
 				if question['score'] <= p4:
 					for tag in question['tags']:
 						graph.add_edge(tag,'very good')
+		graph.filter(2)
 		return graph
 
 	# ------------------------------------------------------------------
@@ -208,12 +218,12 @@ class StackFetcher:
 # ----------------------------------------------------------------------
 #
 def main():
-	stack_api = [StackAPI('stackoverflow'),StackAPI('math')]
+	#stack_api = [StackAPI('stackoverflow'),StackAPI('math')]
 
 	sf = StackFetcher()
 
-	#sf.json_load_questions('qs.json')
-	sf.fetch(stack_api, iterations=1, time_intvl=3600, time_diff=3600*24*7)
+	sf.json_load_questions('qs.json')
+	#sf.fetch(stack_api, iterations=1, time_intvl=3600, time_diff=3600*24*7)
 	sf.json_dump_questions('qs.json')
 
 	uq = sf.get_uniqueQuestions()
