@@ -72,7 +72,7 @@ class Graph:
 
 	def add_edge(self, node_a: str, node_b: str, weight: int=1, unidirected: bool = True) -> None:
 		if(node_a not in self.graph.keys()): self.graph[node_a] = {node_b: weight}
-		elif(node_b not in self.graph[node_a].keys()): self.graph[node_a][node_b] = weight
+		elif(node_b not in self.graph[node_a]): self.graph[node_a][node_b] = weight
 		else: self.graph[node_a][node_b] += weight
 
 	def to_csvOutput(self) -> CsvOutput:
@@ -83,12 +83,14 @@ class Graph:
 		return csvOutput
 
 	def filter(self, occurences : int) -> None:
-		graph = Graph()
+		graph = dict()
 		for node,subnode in self.graph.items():
 			for tag,value in subnode.items():
 				if value > occurences:
-					for v in range(value):
-						graph.add_edge(node,tag)
+					if node not in graph:
+						graph[node] = dict()
+					graph[node][tag] = value
+
 		self.graph = graph
 
 class UniqueQuestions:
@@ -125,7 +127,7 @@ class UniqueQuestions:
 					for tag_b in question['tags']:
 						if tag_a < tag_b:
 							graph.add_edge(tag_a, tag_b)
-		return graph
+		return graph.filter(10)
 
 	def graph_from_timezones(self) -> Graph:
 		graph = Graph()
@@ -141,14 +143,14 @@ class UniqueQuestions:
 						graph.add_edge('EUAF', tag)
 					else:
 						graph.add_edge('ASAU', tag)
-		return graph
+		return graph.filter(10)
 
 	def graph_from_stacks(self) -> Graph:
 		graph = Graph()
 		for stack, questions in self._data.items():
 			for _, question in questions.items():
 				graph.add_edge(str(stack), question['owner']['display_name'])
-		return graph
+		return graph.filter(10)
 
 	def graph_from_rating(self) -> Graph:
 		graph = Graph()
@@ -178,8 +180,7 @@ class UniqueQuestions:
 				if question['score'] <= p4:
 					for tag in question['tags']:
 						graph.add_edge(tag,'very good')
-		graph.filter(2)
-		return graph
+		return graph.filter(10)
 
 	# ------------------------------------------------------------------
 	# implement graph conversion here
