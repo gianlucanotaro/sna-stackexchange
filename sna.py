@@ -90,7 +90,6 @@ class Graph:
 					if node not in graph:
 						graph[node] = dict()
 					graph[node][tag] = value
-
 		self.graph = graph
 
 class UniqueQuestions:
@@ -127,7 +126,8 @@ class UniqueQuestions:
 					for tag_b in question['tags']:
 						if tag_a < tag_b:
 							graph.add_edge(tag_a, tag_b)
-		return graph.filter(10)
+		graph.filter(1)
+		return graph
 
 	def graph_from_timezones(self) -> Graph:
 		graph = Graph()
@@ -143,14 +143,16 @@ class UniqueQuestions:
 						graph.add_edge('EUAF', tag)
 					else:
 						graph.add_edge('ASAU', tag)
-		return graph.filter(10)
+		graph.filter(1)
+		return graph
 
 	def graph_from_stacks(self) -> Graph:
 		graph = Graph()
 		for stack, questions in self._data.items():
 			for _, question in questions.items():
 				graph.add_edge(str(stack), question['owner']['display_name'])
-		return graph.filter(10)
+		graph.filter(1)
+		return graph
 
 	def graph_from_rating(self) -> Graph:
 		graph = Graph()
@@ -180,7 +182,8 @@ class UniqueQuestions:
 				if question['score'] <= p4:
 					for tag in question['tags']:
 						graph.add_edge(tag,'very good')
-		return graph.filter(10)
+		graph.filter(1)
+		return graph
 
 	# ------------------------------------------------------------------
 	# implement graph conversion here
@@ -219,13 +222,25 @@ class StackFetcher:
 # ----------------------------------------------------------------------
 #
 def main():
-	#stack_api = [StackAPI('stackoverflow'),StackAPI('math')]
+	stack_api = [StackAPI('stackoverflow'),
+				StackAPI('math'),
+				StackAPI('gaming'),
+				StackAPI('askubuntu'),
+				StackAPI('apple'),
+				StackAPI('superuser'),
+				StackAPI('serverfault'),
+				StackAPI('tex'),
+				StackAPI('webmasters'),
+				StackAPI('wordpress')
+	]
 
 	sf = StackFetcher()
 
 	sf.json_load_questions('qs.json')
-	#sf.fetch(stack_api, iterations=1, time_intvl=3600, time_diff=3600*24*7)
-	sf.json_dump_questions('qs.json')
+	for stack in stack_api:
+		stack_api_temp = [stack]
+		sf.fetch(stack_api_temp, iterations=10, time_intvl=3600*24*7*2*20, time_diff=3600*24*7*4*3)
+		sf.json_dump_questions('qs.json')
 
 	uq = sf.get_uniqueQuestions()
 
