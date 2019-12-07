@@ -56,12 +56,12 @@ class CsvOutput():
 		return 'Id,Label,timeset\n'+'\n'.join([str(id)+','+label+',' for label, id in self.nodes.items()])
 
 	def export_to_csv(self, edge_file_name: str, node_file_name: str) -> None:
-		with open(edge_file_name, 'w') as f:
+		with open(edge_file_name, 'w', encoding='utf-8') as f:
 			f.write(self._csv_formatted_edges())
-		print('created:', edge_file_name)
-		with open(node_file_name, 'w') as f:
+		print('created:', edge_file_name, 'edges:', len(self.edges))
+		with open(node_file_name, 'w', encoding='utf-8') as f:
 			f.write(self._csv_formatted_nodes())
-		print('created:', node_file_name)
+		print('created:', node_file_name, 'nodes:', len(self.nodes))
 
 class Graph:
 
@@ -82,16 +82,25 @@ class Graph:
 				csvOutput.add_data_row(source_label=source, target_label=target, weight=weight)
 		return csvOutput
 
-	def filter(self, occurences : int) -> None:
+	def filter_min_occurences(self, occurences : int) -> None:
 		graph = dict()
 		for node,subnode in self.graph.items():
 			for tag,value in subnode.items():
-				if value > occurences:
+				if value >= occurences:
 					if node not in graph:
 						graph[node] = dict()
 					graph[node][tag] = value
 		self.graph = graph
 
+	def filter_min_different_destinations(self, diff_dest) -> None:
+		graph = dict()
+		for src, edge in self.graph.items():
+			if len(edge) >= diff_dest:
+				graph[src] = {}
+				for dst, weight in edge.items():
+					graph[src][dst] = weight
+		self.graph = graph
+		
 class UniqueQuestions:
 
 	def __init__(self):
@@ -126,7 +135,6 @@ class UniqueQuestions:
 					for tag_b in question['tags']:
 						if tag_a < tag_b:
 							graph.add_edge(tag_a, tag_b)
-		graph.filter(1)
 		return graph
 
 	def graph_from_timezones(self) -> Graph:
@@ -143,15 +151,13 @@ class UniqueQuestions:
 						graph.add_edge('EUAF', tag)
 					else:
 						graph.add_edge('ASAU', tag)
-		graph.filter(1)
 		return graph
 
 	def graph_from_stacks(self) -> Graph:
 		graph = Graph()
 		for stack, questions in self._data.items():
 			for _, question in questions.items():
-				graph.add_edge(str(stack), question['owner']['display_name'])
-		graph.filter(1)
+				graph.add_edge(question['owner']['display_name'], str(stack))
 		return graph
 
 	def graph_from_rating(self) -> Graph:
@@ -170,25 +176,19 @@ class UniqueQuestions:
 				if question['score'] <= p0:
 					for tag in question['tags']:
 						graph.add_edge(tag,'very bad')
-				if question['score'] <= p1:
+				elif question['score'] <= p1:
 					for tag in question['tags']:
 						graph.add_edge(tag,'bad')
-				if question['score'] <= p2:
+				elif question['score'] <= p2:
 					for tag in question['tags']:
 						graph.add_edge(tag,'ok')
-				if question['score'] <= p3:
+				elif question['score'] <= p3:
 					for tag in question['tags']:
 						graph.add_edge(tag,'good')
-				if question['score'] <= p4:
+				else : #question['score'] <= p4
 					for tag in question['tags']:
 						graph.add_edge(tag,'very good')
-		graph.filter(1)
 		return graph
-
-	# ------------------------------------------------------------------
-	# implement graph conversion here
-	# ------------------------------------------------------------------
-
 
 class StackFetcher:
 
@@ -237,18 +237,25 @@ def main():
 	sf = StackFetcher()
 
 	sf.json_load_questions('qs.json')
-	for stack in stack_api:
-		stack_api_temp = [stack]
-		sf.fetch(stack_api_temp, iterations=10, time_intvl=3600*24*7*2*20, time_diff=3600*24*7*4*3)
-		sf.json_dump_questions('qs.json')
+#	for stack in stack_api:
+#		stack_api_temp = [stack]
+#		sf.fetch(stack_api_temp, iterations=10, time_intvl=3600*24*7*2*20, time_diff=3600*24*7*4*3)
+#		sf.json_dump_questions('qs.json')
 
 	uq = sf.get_uniqueQuestions()
 
 	graph_tags = uq.graph_from_tags()
-	graph_timezones = uq.graph_from_timezones()
-	graph_stacks = uq.graph_from_stacks()
-	graph_rating = uq.graph_from_rating()
+	graph_tags.filter_min_occurences(2)
 
+	graph_timezones = uq.graph_from_timezones()
+	graph_timezones.filter_min_occurences(2)
+
+	graph_stacks = uq.graph_from_stacks()
+	graph_stacks.filter_min_different_destinations(2)
+
+	graph_rating = uq.graph_from_rating()
+	graph_rating.filter_min_occurences(2)
+	
 	csv_tag_output = graph_tags.to_csvOutput()
 	csv_timezone_output = graph_timezones.to_csvOutput()
 	csv_stack_output = graph_stacks.to_csvOutput()
