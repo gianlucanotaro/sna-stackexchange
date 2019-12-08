@@ -154,10 +154,24 @@ class UniqueQuestions:
 		return graph
 
 	def graph_from_stacks(self) -> Graph:
-		graph = Graph()
+		user_stacks = {}
+
 		for stack, questions in self._data.items():
 			for _, question in questions.items():
-				graph.add_edge(question['owner']['display_name'], str(stack))
+				if 'user_id' in question['owner']:
+					if question['owner']['user_id'] not in user_stacks:
+						user_stacks[question['owner']['user_id']] = set()
+					user_stacks[question['owner']['user_id']].add(stack)
+
+		for k, v in user_stacks.items():
+			if len(v) > 5: print(k,v)
+				
+		graph = Graph()
+		for _, stacks in user_stacks.items():
+			for stackA in stacks:
+				for stackB in stacks:
+					if stackA < stackB:
+						graph.add_edge(stackA, stackB)
 		return graph
 
 	def graph_from_rating(self) -> Graph:
@@ -221,26 +235,35 @@ class StackFetcher:
 #
 # ----------------------------------------------------------------------
 #
+def get_stack_names() -> list:
+		# may change to REST request
+		# http://api.stackexchange.com/2.2/sites
+		#
+		# -> [request[items][i]['api_site_parameter'] for i in range(len(request[items])))]
+
+		return ['stackoverflow', 'serverfault', 'superuser', 'meta',
+			'webapps', 'webapps.meta', 'gaming', 'gaming.meta',
+			'webmasters', 'webmasters.meta', 'cooking', 'cooking.meta',
+			'gamedev', 'gamedev.meta', 'photo', 'photo.meta', 'stats',
+			'stats.meta', 'math', 'math.meta', 'diy', 'diy.meta',
+			'meta.superuser', 'meta.serverfault', 'gis', 'gis.meta',
+			'tex', 'tex.meta', 'askubuntu', 'meta.askubuntu']
+
+def stack_apis_from_names(stack_names: list) -> list:
+	return [StackAPI(stack_name) for stack_name in stack_names]
+
+
 def main():
-	stack_api = [StackAPI('stackoverflow'),
-				StackAPI('math'),
-				StackAPI('gaming'),
-				StackAPI('askubuntu'),
-				StackAPI('apple'),
-				StackAPI('superuser'),
-				StackAPI('serverfault'),
-				StackAPI('tex'),
-				StackAPI('webmasters'),
-				StackAPI('wordpress')
-	]
+	stack_names = get_stack_names()
+	stack_apis = stack_apis_from_names(stack_names)
 
 	sf = StackFetcher()
 
 	sf.json_load_questions('qs.json')
-#	for stack in stack_api:
-#		stack_api_temp = [stack]
-#		sf.fetch(stack_api_temp, iterations=10, time_intvl=3600*24*7*2*20, time_diff=3600*24*7*4*3)
-#		sf.json_dump_questions('qs.json')
+
+	for stack_api in stack_apis:
+		sf.fetch([stack_api], iterations=1, time_intvl=3600*24*7*30, time_diff=3600*24*7*4*3)
+		sf.json_dump_questions('qs.json')
 
 	uq = sf.get_uniqueQuestions()
 
@@ -251,7 +274,6 @@ def main():
 	graph_timezones.filter_min_occurences(2)
 
 	graph_stacks = uq.graph_from_stacks()
-	graph_stacks.filter_min_different_destinations(2)
 
 	graph_rating = uq.graph_from_rating()
 	graph_rating.filter_min_occurences(2)
