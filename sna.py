@@ -28,11 +28,6 @@ class CsvOutput():
 	pass
 
 
-#
-#
-#
-	
-
 class CsvOutput():
 
 	def __init__(self):
@@ -108,6 +103,12 @@ class UniqueQuestions:
 
 	def __len__(self) -> int:
 		return sum([len(d.keys()) for _, d in self._data.items()])
+		
+	def __str__(self) -> str:
+		return 'no questions:' + str(self.__len__()) + '\n' +\
+				'-'*40 +'\n' +\
+				'\n'.join([k + ': ' + str(len(v)) for k, v in self._data.items()]) + '\n' + \
+				'-'*40\
 
 	def as_json(self) -> str:
 		return json.dumps({stack_name: {str(id): values for id, values in questions.items()} for stack_name, questions in self._data.items()})
@@ -154,10 +155,24 @@ class UniqueQuestions:
 		return graph
 
 	def graph_from_stacks(self) -> Graph:
-		graph = Graph()
+		user_stacks = {}
+
 		for stack, questions in self._data.items():
 			for _, question in questions.items():
-				graph.add_edge(question['owner']['display_name'], str(stack))
+				if 'user_id' in question['owner']:
+					if question['owner']['user_id'] not in user_stacks:
+						user_stacks[question['owner']['user_id']] = set()
+					user_stacks[question['owner']['user_id']].add(stack)
+
+		for k, v in user_stacks.items():
+			if len(v) > 5: print(k,v)
+				
+		graph = Graph()
+		for _, stacks in user_stacks.items():
+			for stackA in stacks:
+				for stackB in stacks:
+					if stackA < stackB:
+						graph.add_edge(stackA, stackB)
 		return graph
 
 	def graph_from_rating(self) -> Graph:
@@ -198,6 +213,7 @@ class StackFetcher:
 	def fetch(self, stack_apis: [StackAPI], iterations: int = 1, time_intvl: int = 3600, time_diff: int = 0) -> int:
 		ts = int(time.time())
 		for stack_api in stack_apis:
+			print('fetching from:', stack_api._name)
 			for i in range(iterations):
 				response = stack_api.fetch('questions', fromdate=ts-(i+1)*time_intvl-time_diff, todate=ts-i*time_intvl-time_diff)
 				self._questions.extend(stack_api._name, response['items'])
@@ -214,32 +230,42 @@ class StackFetcher:
 	def json_load_questions(self, file_name: str) -> None:
 		with open(file_name, 'r') as f:
 			self._questions = UniqueQuestions.from_json(f.read())
-			print('number of loaded questions:', len(self._questions))
+			print(self._questions)
 			
 	def get_uniqueQuestions(self) -> UniqueQuestions:
 		return self._questions
 #
 # ----------------------------------------------------------------------
 #
-def main():
-	stack_api = [StackAPI('stackoverflow'),
-				StackAPI('math'),
-				StackAPI('gaming'),
-				StackAPI('askubuntu'),
-				StackAPI('apple'),
-				StackAPI('superuser'),
-				StackAPI('serverfault'),
-				StackAPI('tex'),
-				StackAPI('webmasters'),
-				StackAPI('wordpress')
-	]
+def get_stack_names() -> list:
+		# may change to REST request
+		# http://api.stackexchange.com/2.2/sites
+		#
+		# -> [request[items][i]['api_site_parameter'] for i in range(len(request[items])))]
 
+		return ['stackoverflow', 'serverfault', 'superuser', 'meta',
+			'webapps', 'webapps.meta', 'gaming', 'gaming.meta',
+			'webmasters', 'webmasters.meta', 'cooking', 'cooking.meta',
+			'gamedev', 'gamedev.meta', 'photo', 'photo.meta', 'stats',
+			'stats.meta', 'math', 'math.meta', 'diy', 'diy.meta',
+			'meta.superuser', 'meta.serverfault', 'gis', 'gis.meta',
+			'tex', 'tex.meta', 'askubuntu', 'meta.askubuntu']
+
+def stack_apis_from_names(stack_names: list) -> list:
+	return [StackAPI(stack_name) for stack_name in stack_names]
+
+
+	
+if __name__ == '__main__':
 	sf = StackFetcher()
 
 	sf.json_load_questions('qs.json')
-#	for stack in stack_api:
-#		stack_api_temp = [stack]
-#		sf.fetch(stack_api_temp, iterations=10, time_intvl=3600*24*7*2*20, time_diff=3600*24*7*4*3)
+
+
+#	stack_names = get_stack_names()
+#	stack_apis = stack_apis_from_names(stack_names)
+#	for stack_api in stack_apis:
+#		sf.fetch([stack_api], iterations=5, time_intvl=3600*24*30, time_diff=3600*24*30*7)
 #		sf.json_dump_questions('qs.json')
 
 	uq = sf.get_uniqueQuestions()
@@ -251,7 +277,6 @@ def main():
 	graph_timezones.filter_min_occurences(2)
 
 	graph_stacks = uq.graph_from_stacks()
-	graph_stacks.filter_min_different_destinations(2)
 
 	graph_rating = uq.graph_from_rating()
 	graph_rating.filter_min_occurences(2)
@@ -265,6 +290,3 @@ def main():
 	csv_timezone_output.export_to_csv('edge_timezone.csv', 'node_timezone.csv')
 	csv_stack_output.export_to_csv('edge_stack.csv', 'node_stack.csv')
 	csv_rating_output.export_to_csv('edge_rating.csv', 'node_rating.csv')
-	
-if __name__ == '__main__':
-	main()
