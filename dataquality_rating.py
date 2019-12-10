@@ -1,6 +1,9 @@
 import pandas as pd
 import numpy as np
-data_file = 'node_rating.csv'
+import os
+currentdirectory = os.getcwd()
+
+data_file = currentdirectory + '/data_output/node_rating.csv'
 df = pd.read_csv(data_file,
                  sep=',',
                  header=0,

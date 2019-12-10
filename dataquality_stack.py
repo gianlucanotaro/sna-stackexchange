@@ -1,6 +1,9 @@
 import pandas as pd
 import numpy as np
-data_file = 'node_stack.csv'
+import os
+currentdirectory = os.getcwd()
+
+data_file = currentdirectory + '/data_output/node_stack.csv'
 df = pd.read_csv(data_file,
                  sep=',',
                  header=0,

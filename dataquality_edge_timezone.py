@@ -1,6 +1,8 @@
 import pandas as pd
-import numpy as np
-data_file = 'edge_timezone.csv'
+import numpy as npimport os
+currentdirectory = os.getcwd()
+
+data_file = currentdirectory + 'data_output/edge_timezone.csv'
 df = pd.read_csv(data_file,
                  sep=',',
                  header=0,

@@ -1,6 +1,8 @@
 import pandas as pd
 import numpy as np
-data_file = 'edge_stack.csv'
+import os
+currentdirectory = os.getcwd()
+data_file = currentdirectory + '/data_output/edge_stack.csv'
 df = pd.read_csv(data_file,
                  sep=',',
                  header=0,
