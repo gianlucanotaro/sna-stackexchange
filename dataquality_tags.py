@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-data_file = 'file://localhost/C:/workspace_python/firstgraph/data_output/node_tag.csv'
+data_file = 'node_tag.csv'
 df = pd.read_csv(data_file,
                  sep=',',
                  header=0,

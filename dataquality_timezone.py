@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-data_file = 'file://localhost/C:/workspace_python/firstgraph/data_output/node_timezone.csv'
+data_file = 'node_timezone.csv'
 df = pd.read_csv(data_file,
                  sep=',',
                  header=0,

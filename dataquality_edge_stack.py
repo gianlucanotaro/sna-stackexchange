@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-data_file = 'file://localhost/C:/workspace_python/firstgraph/data_output/edge_stack.csv'
+data_file = 'edge_stack.csv'
 df = pd.read_csv(data_file,
                  sep=',',
                  header=0,
