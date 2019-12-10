@@ -27,7 +27,6 @@ class StackFetcher:
 class CsvOutput():
 	pass
 
-
 class CsvOutput():
 
 	def __init__(self):
@@ -154,6 +153,28 @@ class UniqueQuestions:
 						graph.add_edge('ASAU', tag)
 		return graph
 
+	def graph_from_timezones_normalized_filtered(self, min_occurences: int) -> Graph:
+		raw = {}
+		for _, stacks in self._data.items():
+			for _, question in stacks.items():
+				questionTime = datetime.datetime.fromtimestamp(question['creation_date'])
+				for tag in question['tags']:
+					if tag not in raw: raw[tag] = {'USSA': 0, 'EUAF': 0, 'ASAU': 0}
+					if questionTime.time() <= t(hour = 8, minute = 0, second = 0):
+						raw[tag]['USSA'] += 1
+					elif questionTime.time() > t(hour = 8, minute = 0, second = 0) and questionTime.time() <= t(hour = 16, minute = 0, second = 0):
+						raw[tag]['EUAF'] += 1
+					else:
+						raw[tag]['ASAU'] += 1
+		graph = Graph()
+		for tag, timezones in raw.items():
+			total = sum(timezones.values())
+			if total >= min_occurences:
+				for timezone, occurences in timezones.items():
+					if occurences != 0:
+						graph.add_edge(tag, timezone, weight=occurences*100//total)
+		return graph
+	
 	def graph_from_stacks(self) -> Graph:
 		user_stacks = {}
 
@@ -254,8 +275,6 @@ def get_stack_names() -> list:
 def stack_apis_from_names(stack_names: list) -> list:
 	return [StackAPI(stack_name) for stack_name in stack_names]
 
-
-	
 if __name__ == '__main__':
 	sf = StackFetcher()
 
@@ -276,6 +295,8 @@ if __name__ == '__main__':
 	graph_timezones = uq.graph_from_timezones()
 	graph_timezones.filter_min_occurences(2)
 
+	graph_timezones_norm = uq.graph_from_timezones_normalized_filtered(min_occurences=100)
+
 	graph_stacks = uq.graph_from_stacks()
 
 	graph_rating = uq.graph_from_rating()
@@ -283,10 +304,12 @@ if __name__ == '__main__':
 	
 	csv_tag_output = graph_tags.to_csvOutput()
 	csv_timezone_output = graph_timezones.to_csvOutput()
+	csv_timezone_norm = graph_timezones_norm.to_csvOutput()
 	csv_stack_output = graph_stacks.to_csvOutput()
 	csv_rating_output = graph_rating.to_csvOutput()
 	
 	csv_tag_output.export_to_csv('edge_tag.csv', 'node_tag.csv')
 	csv_timezone_output.export_to_csv('edge_timezone.csv', 'node_timezone.csv')
+	csv_timezone_norm.export_to_csv('edge_timezone_norm.csv', 'node_timezone_norm.csv')
 	csv_stack_output.export_to_csv('edge_stack.csv', 'node_stack.csv')
 	csv_rating_output.export_to_csv('edge_rating.csv', 'node_rating.csv')
