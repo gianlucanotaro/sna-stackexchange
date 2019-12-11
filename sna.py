@@ -166,13 +166,37 @@ class UniqueQuestions:
 						raw[tag]['EUAF'] += 1
 					else:
 						raw[tag]['ASAU'] += 1
+
+		prcnt = {tag: {tz: val*100//sum(tzs.values()) for tz, val in tzs.items() if val > 0} for tag, tzs in raw.items() if sum(tzs.values()) > min_occurences}
 		graph = Graph()
-		for tag, timezones in raw.items():
-			total = sum(timezones.values())
-			if total >= min_occurences:
-				for timezone, occurences in timezones.items():
-					if occurences != 0:
-						graph.add_edge(tag, timezone, weight=occurences*100//total)
+		for tag, timezones in prcnt.items():
+			for timezone, weight in timezones.items():
+				graph.add_edge(tag, timezone, weight=weight)
+
+		print('top 5 each')
+		top_ussa = []
+		top_euaf = []
+		top_asau = []
+		for tg, tzs in prcnt.items():
+			top_ussa.append((tg, tzs['USSA'], tzs))
+			top_euaf.append((tg, tzs['EUAF'], tzs))
+			top_asau.append((tg, tzs['ASAU'], tzs))
+		top_ussa.sort(key=lambda x: x[1],reverse=True)
+		top_euaf.sort(key=lambda x: x[1],reverse=True)
+		top_asau.sort(key=lambda x: x[1],reverse=True)
+
+		print('top ussa')
+		for i in top_ussa[:5]:
+			print(i)
+
+		print('top euaf')
+		for i in top_euaf[:5]:
+			print(i)
+
+		print('top asau')
+		for i in top_asau[:5]:
+			print(i)
+
 		return graph
 	
 	def graph_from_stacks(self) -> Graph:
