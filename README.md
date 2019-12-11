@@ -6,6 +6,7 @@ Install the following modules with pip:
 *  stackapi
 *  matplotlib
 *  numpy
+* pandas
 
 It can generate the following graphs from stackexchange json files:
 * Graph from tags
