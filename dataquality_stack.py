@@ -87,3 +87,11 @@ data_quality_report2
 
 print("\nData Quality Report - Stack Nodes - after removing missing values")
 print(data_quality_report2)
+
+df2 = df.copy()
+df2 = df2.assign(node_type='Stack')
+# d2.head()
+print("\n\n Stack Data with node type column updated")
+print(df2)
+
+df2.to_csv(index=False, path_or_buf=currentdirectory + '/data_output/node_stack2.csv')

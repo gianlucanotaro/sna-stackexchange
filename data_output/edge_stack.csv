@@ -1,4 +1,4 @@
-Source, Target,Type,Id,Label,timeset,Weight
+Source,Target,Type,Id,Label,timeset,Weight
 0,1,Unidirected,0,,,2
 0,2,Unidirected,1,,,23
 0,3,Unidirected,2,,,2
