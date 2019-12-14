@@ -84,3 +84,10 @@ data_quality_report2
 
 print("\nData Quality Report - Rating Edges -after removing missing values")
 print(data_quality_report2)
+
+
+# dataframe = df.copy()
+# edgeweight_rating = dataframe.groupby(['Weight']).count()
+# edgeweight_rating
+# print("\nRating- questions grouped by edge weight")
+# print(edgeweight_rating)

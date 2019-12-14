@@ -53,16 +53,21 @@ print(df.info())
 
 print(data_quality_report)
 
-#print("Columns: {}".format(len(columns.index)))
+rating_values = df.loc[1:4, ['Id', 'Label']]
+rating_values
+print("\n\nRating Values")
+print(rating_values)
+
+# print("Columns: {}".format(len(columns.index)))
 # print(tags.columns)
 # print(tags.describe(include=np.object))
 
 # print(tags.isna)
 print("\nDetect missing values")
 print(df.isnull)
-#tags.dropna(subset=['timeset'], inplace=True)
+# tags.dropna(subset=['timeset'], inplace=True)
 # drop the columns where at least one element is missing
-#tags.dropna(axis='columns', inplace=True)
+# tags.dropna(axis='columns', inplace=True)
 # Keep only the rows with at least 2 non-NA values
 df.dropna(thresh=2, inplace=True)
 df
@@ -87,3 +92,20 @@ data_quality_report2
 
 print("\nData Quality Report - Rating Nodes -after removing missing values")
 print(data_quality_report2)
+
+
+dataframe2 = df.copy()
+
+# dataframe2 = df.assign(NodeType=dataframe2.Label == 'very bad')
+dataframe2 = dataframe2.assign(node_type='Question')
+# dataframe2.head()
+#print("\n\n Rating Questions with node type column")
+# print(dataframe2)
+dataframe2.loc[1: 4, 'node_type'] = dataframe2.loc[1: 4,
+                                                   'node_type'].str.replace('Question', 'Rating')
+
+dataframe2.head()
+print("\n\n Rating Questions with node type column updated")
+print(dataframe2)
+
+dataframe2.to_csv(index=False, path_or_buf=currentdirectory + '/data_output/node_rating2.csv')
